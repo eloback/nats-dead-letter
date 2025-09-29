@@ -1,0 +1,36 @@
+{
+  "customizations": {
+    "codespaces": {
+      "repositories": {
+        "maisagil/*": {
+          "permissions": "write-all"
+        }
+      }
+    },
+    "vscode": {
+      "extensions": [
+        "mkhl.direnv",
+        "vadimcn.vscode-lldb",
+        "mutantdino.resourcemonitor",
+        "rust-lang.rust-analyzer",
+        "tamasfe.even-better-toml",
+        "fill-labs.dependi"
+      ]
+    }
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/sshd:1": {
+      "version": "latest"
+    }
+  },
+  "image": "ghcr.io/cachix/devenv:v1.0.5",
+  "overrideCommand": false,
+  "postCreateCommand": "git config --global url.\"https://github.com/maisagil\".insteadOf ssh://git@github.com/maisagil",
+  "secrets": {
+    "SOPS_AGE_KEY": {
+      "description": "SOPS AGE KEY for encrypting secrets",
+      "documentationUrl": "https://github.com/getsops/sops"
+    }
+  },
+  "updateContentCommand": ""
+}
