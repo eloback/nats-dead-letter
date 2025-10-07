@@ -6,6 +6,8 @@ use time::OffsetDateTime;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "postgres", derive(sqlx::FromRow))]
 pub struct DeadLetterMessage {
+    /// Unique identifier for the dead letter message in the store
+    pub id: Option<i64>,
     /// The original message subject
     pub subject: String,
     /// The original message payload
@@ -111,6 +113,7 @@ impl DeadLetterMessage {
         let timestamp = message.time;
 
         Self {
+            id: None,
             subject: message.subject.to_string(),
             payload: message.payload.to_vec(),
             headers,
@@ -137,6 +140,7 @@ impl DeadLetterMessage {
         headers: Option<std::collections::HashMap<String, String>>,
     ) -> Self {
         Self {
+            id: None,
             subject: original_subject,
             payload,
             headers,

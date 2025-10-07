@@ -170,6 +170,7 @@ impl DeadLetterStore for SqlxDeadLetterStore {
                 };
 
                 DeadLetterMessage {
+                    id: Some(row.id),
                     subject: row.subject,
                     payload: row.payload,
                     headers,
