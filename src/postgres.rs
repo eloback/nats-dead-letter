@@ -31,6 +31,8 @@ struct DeadLetterMessageRow {
     reason: String,
     timestamp: OffsetDateTime,
     delivery_count: i64,
+    prefix: Option<String>,
+    aggregate_id: Option<uuid::Uuid>,
 }
 
 impl SqlxDeadLetterStore {
@@ -53,6 +55,8 @@ CREATE TABLE IF NOT EXISTS dead_letter_messages (
     reason VARCHAR NOT NULL,
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     delivery_count BIGINT NOT NULL,
+    prefix VARCHAR,
+    aggregate_id UUID,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -82,7 +86,7 @@ impl DeadLetterStore for SqlxDeadLetterStore {
         sqlx::query(
                 r#"
                 INSERT INTO dead_letter_messages 
-                (subject, payload, headers, stream, consumer, stream_sequence, reason, timestamp, delivery_count)
+                (subject, payload, headers, stream, consumer, stream_sequence, reason, timestamp, delivery_count, prefix, aggregate_id)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                 "#
             )
@@ -95,6 +99,8 @@ impl DeadLetterStore for SqlxDeadLetterStore {
             .bind(reason_str)
             .bind(message.timestamp)
             .bind(message.delivery_count as i64)
+            .bind(&message.prefix)
+            .bind(&message.aggregate_id)
             .execute(&self.pool)
             .await?;
 
@@ -112,7 +118,7 @@ impl DeadLetterStore for SqlxDeadLetterStore {
         let offset = offset.unwrap_or(0);
 
         let mut query = String::from(
-                "SELECT id, subject, payload, headers, stream, consumer, stream_sequence, reason, timestamp, delivery_count FROM dead_letter_messages WHERE 1=1"
+                "SELECT id, subject, payload, headers, stream, consumer, stream_sequence, reason, timestamp, delivery_count, prefix, aggregate_id FROM dead_letter_messages WHERE 1=1"
             );
 
         let mut params: Vec<String> = Vec::new();
@@ -173,6 +179,8 @@ impl DeadLetterStore for SqlxDeadLetterStore {
                     reason,
                     timestamp: row.timestamp,
                     delivery_count: row.delivery_count as u64,
+                    prefix: row.prefix,
+                    aggregate_id: row.aggregate_id,
                 }
             })
             .collect();

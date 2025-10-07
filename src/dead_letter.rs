@@ -1,4 +1,3 @@
-use async_nats::jetstream::Message;
 use serde::{Deserialize, Serialize};
 use std::error::Error as StdError;
 use time::OffsetDateTime;
@@ -26,6 +25,10 @@ pub struct DeadLetterMessage {
     pub timestamp: OffsetDateTime,
     /// Number of delivery attempts before being dead lettered
     pub delivery_count: u64,
+    /// Prefix used in subject parsing
+    pub prefix: Option<String>,
+    /// Aggregate ID extracted from the subject
+    pub aggregate_id: Option<uuid::Uuid>,
 }
 
 /// The reason why a message was added to the dead letter queue
@@ -73,48 +76,6 @@ pub trait DeadLetterStore: Send + Sync {
 }
 
 impl DeadLetterMessage {
-    /// Create a new dead letter message from a NATS message and advisory info
-    pub fn new(
-        message: &Message,
-        stream: String,
-        consumer: String,
-        stream_sequence: u64,
-        reason: DeadLetterReason,
-        delivery_count: u64,
-    ) -> Self {
-        let headers = message.headers.as_ref().map(|h| {
-            h.iter()
-                .map(|(k, v)| {
-                    (
-                        k.to_string(),
-                        v.iter()
-                            .map(|val| val.to_string())
-                            .collect::<Vec<_>>()
-                            .join(","),
-                    )
-                })
-                .collect()
-        });
-
-        // Extract timestamp from message info, fallback to current time if unavailable
-        let timestamp = message
-            .info()
-            .map(|info| info.published)
-            .unwrap_or_else(|_| OffsetDateTime::now_utc());
-
-        Self {
-            subject: message.subject.to_string(),
-            payload: message.payload.to_vec(),
-            headers,
-            stream,
-            consumer,
-            stream_sequence,
-            reason,
-            timestamp,
-            delivery_count,
-        }
-    }
-
     /// Create a new dead letter message from a NATS stream message and advisory info
     pub fn from_stream_message(
         message: &async_nats::jetstream::message::StreamMessage,
@@ -123,6 +84,8 @@ impl DeadLetterMessage {
         stream_sequence: u64,
         reason: DeadLetterReason,
         delivery_count: u64,
+        prefix: String,
+        aggregate_id: uuid::Uuid,
     ) -> Self {
         let headers = if message.headers.is_empty() {
             None
@@ -157,6 +120,8 @@ impl DeadLetterMessage {
             reason,
             timestamp,
             delivery_count,
+            prefix: Some(prefix),
+            aggregate_id: Some(aggregate_id),
         }
     }
 
@@ -181,7 +146,8 @@ impl DeadLetterMessage {
             reason,
             timestamp: OffsetDateTime::now_utc(),
             delivery_count,
+            prefix: None,
+            aggregate_id: None,
         }
     }
 }
-

@@ -11,6 +11,7 @@
 /// dead letter types
 pub mod dead_letter;
 mod nats_store;
+pub(crate) mod subject;
 
 #[cfg(feature = "postgres")]
 pub mod postgres;
@@ -21,4 +22,3 @@ pub use nats_store::NatsStore;
 mod error {
     pub use eyre::Result;
 }
-
