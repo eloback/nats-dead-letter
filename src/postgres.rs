@@ -87,7 +87,7 @@ impl DeadLetterStore for SqlxDeadLetterStore {
                 r#"
                 INSERT INTO dead_letter_messages 
                 (subject, payload, headers, stream, consumer, stream_sequence, reason, timestamp, delivery_count, prefix, aggregate_id)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
                 "#
             )
             .bind(&message.subject)
