@@ -145,7 +145,6 @@ impl NatsStore {
 
         let store = dead_letter_store.clone();
         let context = self.context.clone();
-        let prefix = self.name;
 
         self.graceful_shutdown.task_tracker.spawn(async move {
             let mut incoming = incoming;
@@ -153,7 +152,7 @@ impl NatsStore {
                 match advisory_msg_result {
                     Ok(advisory_msg) => {
                         if let Err(e) =
-                            process_advisory_message(&store, &context, advisory_msg, prefix).await
+                            process_advisory_message(&store, &context, advisory_msg).await
                         {
                             error!("Error processing dead letter advisory: {:?}", e);
                         }
@@ -173,7 +172,6 @@ async fn process_advisory_message<D>(
     store: &D,
     context: &Context,
     advisory_msg: async_nats::jetstream::Message,
-    prefix: &str,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>
 where
     D: DeadLetterStore,
@@ -217,7 +215,7 @@ where
     let stream = context.get_stream(stream_name).await?;
     match stream.get_raw_message(stream_seq).await {
         Ok(original_msg) => {
-            let (_, aggregate_id) = subject::subject_from_str(prefix, &original_msg.subject)?;
+            let (prefix, _, aggregate_id) = subject::subject_from_str(&original_msg.subject)?;
             let dead_letter_msg = DeadLetterMessage::from_stream_message(
                 &original_msg,
                 stream_name.to_string(),
@@ -225,7 +223,7 @@ where
                 stream_seq,
                 reason,
                 delivery_count,
-                prefix.to_string(),
+                prefix.to_owned(),
                 aggregate_id,
             );
 
